@@ -22,17 +22,26 @@
 */
 #include "u3dspv.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#if defined (WIN32)
+ 
+#include <windows.h>
+typedef void* u3d_thread_t;
+typedef void u3d_th_ret_t;
+
+#else
+ 
 #include <pthread.h>
-#include <time.h>
+typedef pthread_t* u3d_thread_t;
+typedef void* u3d_th_ret_t;
+
+#endif
+
 
 #include <GL/glut.h> 
 #include <GL/gl.h>	
 #include <GL/glu.h>	
 
-pthread_t* visthread;
+u3d_thread_t visthread;
 
 char title[256];
 float ssx, ssy, ssz,xrot,yrot,zzoom;
@@ -41,13 +50,15 @@ int non,itr,window,tab_itr,done,data_changed,scal;
 GLuint* lists;
 time_t t1;
 int frames;
-void* window_worker(void* args);
+u3d_th_ret_t window_worker(void* args);
 
-int u3d_init_(double* _ssx, double* _ssy, double* _ssz, int* _non,int* _itr)
+int DLL_EXPORT U3D_INIT_(double* _ssx, double* _ssy, double* _ssz, int* _non,int* _itr)
 {
-    ssx = (*_ssx);
-    ssy = (*_ssy);
-    ssz = (*_ssz);
+    int i, j;
+
+	ssx = (float)(*_ssx);
+    ssy = (float)(*_ssy);
+    ssz = (float)(*_ssz);
 
     non = (*_non);
     itr = (*_itr);
@@ -60,7 +71,7 @@ int u3d_init_(double* _ssx, double* _ssy, double* _ssz, int* _non,int* _itr)
     yrot =0.0f;
     zzoom = 0.0f;
 
-    u3d_set_title_("Universal 3D Space Properties Visualizator",256);
+	U3D_SET_TITLE_("Universal 3D Space Properties Visualizator",256);
     //table allocation
     tab = (double***)malloc(itr * sizeof(double**));
     if(tab == NULL)
@@ -68,8 +79,8 @@ int u3d_init_(double* _ssx, double* _ssy, double* _ssz, int* _non,int* _itr)
         fprintf(stderr, "out of memory\n");
         return -1;
     }
-    int i, j, k;
-    for (i = 0 ; i < itr ; i++ )
+    
+    for ( i = 0 ; i < itr ; i++ )
     {
         tab[i] = (double**)malloc(8 * sizeof(double*));
         if(tab[i] == NULL)
@@ -102,21 +113,30 @@ int u3d_init_(double* _ssx, double* _ssy, double* _ssz, int* _non,int* _itr)
         fprintf(stderr, "out of memory\n");
         return -1;
     }
-    visthread = (pthread_t*) malloc(sizeof(pthread_t));
+#if defined (WIN32)
+	visthread = _beginthread(window_worker,0,NULL);
+	return 0;
+#else
+	visthread = (u3d_thread_t) malloc(sizeof(u3d_thread_t));
     return pthread_create(visthread,NULL,window_worker,NULL);
+#endif
 }
 
-void u3d_join_()
+void U3D_JOIN_()
 {
     done = 1;
+#if defined (WIN32)
+	WaitForSingleObject( visthread, INFINITE );
+#else
     pthread_join((*visthread),NULL);
+#endif
 }
 
-void u3d_add_data_(double* x1, double* x2, double* x3, double* v1, double* v2, double* v3, double* prop)
+void U3D_ADD_DATA_(double* x1, double* x2, double* x3, double* v1, double* v2, double* v3, double* prop)
 {
-    tab_itr = (++tab_itr == itr)?0:tab_itr;
     int i;
-
+	tab_itr = (++tab_itr == itr)?0:tab_itr;
+    
     for(i = 0 ; i < non ; i++)
     {
         tab[tab_itr][0][i] = x1[i];
@@ -151,7 +171,7 @@ void u3d_add_data_(double* x1, double* x2, double* x3, double* v1, double* v2, d
     data_changed = 1;
 }
 
-void u3d_set_title_(const char* str, unsigned int size)
+void U3D_SET_TITLE_(const char* str, unsigned int size)
 {
     strncpy(title, str, (size > 256)? 255:size-1);
 }
@@ -261,12 +281,19 @@ void init_GL(int width, int height)
 
 void draw_scene()
 {	
-    if(done != 0 )
+	time_t now;
+    int i;
+            
+	if(done != 0 )
     {
+#if defined (WIN32)
+		glutDestroyWindow(window);
+#else
         glutLeaveMainLoop();
-    }
+#endif
+	}
 
-    time_t now = time(NULL);
+    now = time(NULL);
     if(difftime(now,t1) > 1)
     {
         char buf[300];
@@ -308,7 +335,6 @@ void draw_scene()
 
         glBegin(GL_POINTS);
         {
-            int i;
             for (i = 0 ; i < non ; i++)
             {
                 set_gl_color(tab[tab_itr][7][12], tab[tab_itr][7][13], tab[tab_itr][6][i]);
@@ -321,7 +347,6 @@ void draw_scene()
         glBegin(GL_LINES);
         {
             glColor3f(0.0f,1.0f,1.0f);
-            int i;
             for (i = 0 ; i < non ; i++)
             {
                 glVertex3d( tab[tab_itr][0][i], tab[tab_itr][2][i], tab[tab_itr][1][i]);
@@ -340,7 +365,7 @@ void draw_scene()
     frames++;
 }
 
-void* window_worker(void* args)
+u3d_th_ret_t window_worker(void* args)
 {
     int argc;
     char* argv[1] = {"ff3d"};
@@ -368,3 +393,4 @@ void* window_worker(void* args)
     glutMainLoop();
     return NULL;
 }
+

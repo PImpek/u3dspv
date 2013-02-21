@@ -22,6 +22,21 @@
  */
 #ifndef U3DSPV_H
 #define U3DSPV_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+
+#if defined (EXPORT_DLL) && (WIN32)
+ #define DLL_EXPORT __declspec(dllexport)
+#elif defined (WIN32)
+ #define DLL_EXPORT __declspec(dllimport)
+#else
+ #define DLL_EXPORT
+#endif
+
 /*
  *
  * name: u3d_init_
@@ -37,7 +52,7 @@
  * other : failure during creating thread.
  *
  */
-int u3d_init_(double* ssx, double* ssy, double* ssz, int* non, int* itr);
+int DLL_EXPORT U3D_INIT_(double* ssx, double* ssy, double* ssz, int* non, int* itr);
 /*
  *
  * name: u3d_set_title_
@@ -46,7 +61,7 @@ int u3d_init_(double* ssx, double* ssy, double* ssz, int* non, int* itr);
  * str : caption
  * size: fortran pass this argument implicitly
  */
-void u3d_set_title_(const char* str, unsigned int size);
+void DLL_EXPORT U3D_SET_TITLE_(const char* str, unsigned int size);
 /*
  *
  * name: u3d_add_data_
@@ -56,12 +71,12 @@ void u3d_set_title_(const char* str, unsigned int size);
  * prop : vector of property (non), i.e. temperature
  *
  */
-void u3d_add_data_(double* x1, double* x2, double* x3, double* v1, double* v2, double* v3, double* prop);
+void DLL_EXPORT U3D_ADD_DATA_(double* x1, double* x2, double* x3, double* v1, double* v2, double* v3, double* prop);
 /*
  *
  * name: u3d_join
  * ends visualization
  *
  */
-void u3d_join_();
+void DLL_EXPORT U3D_JOIN_();
 #endif //U3DSPV_H
