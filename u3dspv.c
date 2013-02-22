@@ -43,22 +43,49 @@ typedef void* u3d_th_ret_t;
 
 u3d_thread_t visthread;
 
+// window title
 char title[256];
-float ssx, ssy, ssz,xrot,yrot,zzoom;
+//ss{X} - space size in direction {X}
+float ssx, ssy, ssz;
+//os{X} - offset ind direction {X}  
+float osx, osy, osz;
+//rot{x|y} - rotation in direction {x|y}
+//zzom - zoom factor in Z direction
+float xrot,yrot,zzoom;
+//array for data
 double*** tab;
-int non,itr,window,tab_itr,done,data_changed,scal;
+//non - number of nodes
+int non;
+//itr - number of iterations
+int itr;
+//window - windows descr
+int window;
+//tab_itr - current iteration;
+int tab_itr;
+//done - indicate end of visualization
+int done;
+//data_changed - indicate changes in data between threads
+int data_changed;
+//scal - scalling factor
+int scal;
+//lists - array of openGL list descriptors
 GLuint* lists;
+//t1 - timestamp for computing fps
 time_t t1;
+//frames frames counter
 int frames;
+//delay - delay beetween frames changes in play_loop mode
+double delay;
+//play_loop - pLay_loop mode indicator
+int play_loop;
+//dtime - time od last frame change in play_loop mode
+time_t dtime;
+// thread function
 u3d_th_ret_t window_worker(void* args);
 
-int DLL_EXPORT U3D_INIT_(double* _ssx, double* _ssy, double* _ssz, int* _non,int* _itr)
+int DLL_EXPORT U3D_INIT_(int* _non,int* _itr)
 {
     int i, j;
-
-	ssx = (float)(*_ssx);
-    ssy = (float)(*_ssy);
-    ssz = (float)(*_ssz);
 
     non = (*_non);
     itr = (*_itr);
@@ -71,7 +98,9 @@ int DLL_EXPORT U3D_INIT_(double* _ssx, double* _ssy, double* _ssz, int* _non,int
     yrot =0.0f;
     zzoom = 0.0f;
 
-	U3D_SET_TITLE_("Universal 3D Space Properties Visualizator",256);
+	play_loop = 0;
+
+	U3D_SET_TITLE_("Universal 3D Space Properties Visualizator",255);
     //table allocation
     tab = (double***)malloc(itr * sizeof(double**));
     if(tab == NULL)
@@ -96,6 +125,7 @@ int DLL_EXPORT U3D_INIT_(double* _ssx, double* _ssy, double* _ssz, int* _non,int
                 fprintf(stderr, "out of memory\n");
                 return -1;
             }
+			memset(tab[i][j],0.0,sizeof(tab[i][j]));
         }
         //metadata min & max for each tab[i][0..6]
         tab[i][7] = (double*)malloc(14 * sizeof(double));
@@ -113,6 +143,7 @@ int DLL_EXPORT U3D_INIT_(double* _ssx, double* _ssy, double* _ssz, int* _non,int
         fprintf(stderr, "out of memory\n");
         return -1;
     }
+    
 #if defined (WIN32)
 	visthread = _beginthread(window_worker,0,NULL);
 	return 0;
@@ -122,7 +153,7 @@ int DLL_EXPORT U3D_INIT_(double* _ssx, double* _ssy, double* _ssz, int* _non,int
 #endif
 }
 
-void U3D_JOIN_()
+void DLL_EXPORT U3D_JOIN_()
 {
     done = 1;
 #if defined (WIN32)
@@ -132,12 +163,34 @@ void U3D_JOIN_()
 #endif
 }
 
-void U3D_ADD_DATA_(double* x1, double* x2, double* x3, double* v1, double* v2, double* v3, double* prop)
+void DLL_EXPORT U3D_ADD_DATA_(double* x1, double* x2, double* x3, double* v1, double* v2, double* v3, double* prop)
 {
     int i;
 	tab_itr = (++tab_itr == itr)?0:tab_itr;
     
-    for(i = 0 ; i < non ; i++)
+	tab[tab_itr][7][0] = x1[0];
+	tab[tab_itr][7][1] = x1[0];
+	
+	tab[tab_itr][7][2] = x2[0];
+	tab[tab_itr][7][3] = x2[0];
+
+	tab[tab_itr][7][4] = x3[0];
+	tab[tab_itr][7][5] = x3[0];
+	
+	tab[tab_itr][7][6] = v1[0];
+	tab[tab_itr][7][7] = v1[0];
+
+	tab[tab_itr][7][8] = v2[0];
+	tab[tab_itr][7][9] = v2[0];
+
+	tab[tab_itr][7][10] = v3[0];
+	tab[tab_itr][7][11] = v3[0];
+	
+	tab[tab_itr][7][12] = prop[0];
+	tab[tab_itr][7][13] = prop[0];
+
+
+    for(i = 1 ; i < non ; i++)
     {
         tab[tab_itr][0][i] = x1[i];
         if(tab[tab_itr][7][0] > x1[i]) tab[tab_itr][7][0] = x1[i];
@@ -167,13 +220,58 @@ void U3D_ADD_DATA_(double* x1, double* x2, double* x3, double* v1, double* v2, d
         if(tab[tab_itr][7][12] > prop[i]) tab[tab_itr][7][12] = prop[i];
         if(tab[tab_itr][7][13] < prop[i]) tab[tab_itr][7][13] = prop[i];
     }
+	//after 1st itr set space properties
+	if (tab_itr == 0)
+	{
+		ssx = (float) tab[tab_itr][7][1] - tab[tab_itr][7][0];
+		osx = tab[tab_itr][7][0];
+		
+		ssy = (float) tab[tab_itr][7][3] - tab[tab_itr][7][2];
+		osy = tab[tab_itr][7][2];
+		
+		ssz = (float) tab[tab_itr][7][5] - tab[tab_itr][7][4];
+		osz = tab[tab_itr][7][4];
+		
+	}
 
     data_changed = 1;
 }
 
-void U3D_SET_TITLE_(const char* str, unsigned int size)
+void DLL_EXPORT U3D_SET_TITLE_(const char* str, unsigned int size)
 {
-    strncpy(title, str, (size > 256)? 255:size-1);
+    strncpy(title, str, (size > 256)? 256:size+1);
+}
+
+void DLL_EXPORT U3D_PLAY_LOOP_(double* _delay)
+{
+	delay = (*_delay);
+	dtime = time(NULL);
+	play_loop = 1;
+}
+
+void DLL_EXPORT U3D_STORE_DATA_(const char* fname, unsigned int size)
+{
+	FILE* f;
+	int i,j;
+
+	f = fopen(fname,"wb");
+	
+	if (f == NULL) return ;
+	//header
+	fwrite("u3d:",sizeof(char),3,f);
+	//dimensions
+	fwrite(&itr,sizeof(int),1,f);
+	fwrite(&non,sizeof(int),1,f);
+	//data
+	for(i=0;i<itr;i++)
+	{
+		for(j=0;j<7;j++)
+		{
+			fwrite(tab[i][j],sizeof(double),non,f);
+		}
+		fwrite(tab[i][7],sizeof(double),14,f);
+	}
+	fclose(f);
 }
 
 void set_gl_color(double min, double max, double v)
@@ -283,7 +381,7 @@ void draw_scene()
 {	
 	time_t now;
     int i;
-            
+    //end visualization        
 	if(done != 0 )
     {
 #if defined (WIN32)
@@ -292,7 +390,7 @@ void draw_scene()
         glutLeaveMainLoop();
 #endif
 	}
-
+	// compute fps & set tiltle
     now = time(NULL);
     if(difftime(now,t1) > 1)
     {
@@ -312,10 +410,23 @@ void draw_scene()
     glTranslatef(-ssx/2.0f,
                  -ssz/2.0f,
                  -ssy/2.0f);
-    if(data_changed == 0)
+    
+	if(play_loop > 0)
+	{
+		double dt;
+		now = time(NULL);
+
+		dt = difftime(now,dtime);
+		if (dt >= delay)
+		{
+			tab_itr = (++tab_itr == itr)?0:tab_itr;
+			dtime = now;
+		}
+	}
+
+	if(data_changed == 0)
     {
-        if (tab_itr < 0) return;
-        glCallList(lists[tab_itr]);
+        if (tab_itr >= 0) glCallList(lists[tab_itr]);
     } else {
         lists[tab_itr] = glGenLists(1);
         glNewList(lists[tab_itr],GL_COMPILE);
@@ -367,7 +478,7 @@ void draw_scene()
 
 u3d_th_ret_t window_worker(void* args)
 {
-    int argc;
+	    int argc;
     char* argv[1] = {"ff3d"};
     argc = 1;
     t1 = time(NULL);
@@ -390,7 +501,7 @@ u3d_th_ret_t window_worker(void* args)
     glutIdleFunc(&draw_scene);
     init_GL(640,480);
 
+	
     glutMainLoop();
     return NULL;
 }
-

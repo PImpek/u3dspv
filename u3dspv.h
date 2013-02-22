@@ -52,7 +52,7 @@
  * other : failure during creating thread.
  *
  */
-int DLL_EXPORT U3D_INIT_(double* ssx, double* ssy, double* ssz, int* non, int* itr);
+int DLL_EXPORT U3D_INIT_(int* non, int* itr);
 /*
  *
  * name: u3d_set_title_
@@ -79,4 +79,23 @@ void DLL_EXPORT U3D_ADD_DATA_(double* x1, double* x2, double* x3, double* v1, do
  *
  */
 void DLL_EXPORT U3D_JOIN_();
+/*
+ *
+ * name: u3d_play_loop_
+ * plays buffered data in loop. Useful after ;
+ * @param
+ * delay - delay beetween frames changes, in [ms]
+ *
+ */
+void DLL_EXPORT U3D_PLAY_LOOP_(double* delay);
+/*
+ *
+ * name: u3d_store_data_
+ * stores data in file
+ * @param
+ * fname - path to file
+ * size: fortran pass this argument implicitly
+ *
+ */
+void DLL_EXPORT U3D_STORE_DATA_(const char* fname, unsigned int size);
 #endif //U3DSPV_H
