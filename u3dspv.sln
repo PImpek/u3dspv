@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "u3dspv", "u3dspv.vcproj", "{22189C24-A914-4F34-AFED-81EBA183AC4F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "u3dplayer", "u3dplayer.vcproj", "{C16BFF75-A382-4048-8965-2D25CA01A3FA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{22189C24-A914-4F34-AFED-81EBA183AC4F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{22189C24-A914-4F34-AFED-81EBA183AC4F}.Debug|Win32.Build.0 = Debug|Win32
+		{22189C24-A914-4F34-AFED-81EBA183AC4F}.Release|Win32.ActiveCfg = Release|Win32
+		{22189C24-A914-4F34-AFED-81EBA183AC4F}.Release|Win32.Build.0 = Release|Win32
+		{C16BFF75-A382-4048-8965-2D25CA01A3FA}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C16BFF75-A382-4048-8965-2D25CA01A3FA}.Debug|Win32.Build.0 = Debug|Win32
+		{C16BFF75-A382-4048-8965-2D25CA01A3FA}.Release|Win32.ActiveCfg = Release|Win32
+		{C16BFF75-A382-4048-8965-2D25CA01A3FA}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

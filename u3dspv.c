@@ -34,8 +34,13 @@ typedef void u3d_th_ret_t;
 typedef pthread_t* u3d_thread_t;
 typedef void* u3d_th_ret_t;
 
-#endif
+#include <unistd.h>
+void Sleep(int ms) {
+usleep(ms*1000); //convert to microseconds
+return;
+}
 
+#endif
 
 #include <GL/glut.h> 
 #include <GL/gl.h>	
@@ -65,7 +70,7 @@ int tab_itr;
 //done - indicate end of visualization
 int done;
 //data_changed - indicate changes in data between threads
-int data_changed;
+int* data_changed;
 //scal - scalling factor
 int scal;
 //lists - array of openGL list descriptors
@@ -79,15 +84,23 @@ double delay;
 //play_loop - pLay_loop mode indicator
 int play_loop;
 //dtime - time od last frame change in play_loop mode
-time_t dtime;
+clock_t dtime;
 // thread function
 u3d_th_ret_t window_worker(void* args);
+//initial lock for load data
+int* initlock;
 
 int DLL_EXPORT U3D_INIT_(int* _non,int* _itr)
 {
     int i, j;
+	
+	initlock = (int*)malloc(sizeof(int));
+	(*initlock) = 1;
+    
+	data_changed = (int*)malloc(sizeof(int));
+	(*data_changed) = 0;
 
-    non = (*_non);
+	non = (*_non);
     itr = (*_itr);
     tab_itr = -1;
 
@@ -146,6 +159,9 @@ int DLL_EXPORT U3D_INIT_(int* _non,int* _itr)
     
 #if defined (WIN32)
 	visthread = _beginthread(window_worker,0,NULL);
+
+	while ((*initlock) == 1){Sleep(100);}
+
 	return 0;
 #else
 	visthread = (u3d_thread_t) malloc(sizeof(u3d_thread_t));
@@ -165,76 +181,80 @@ void DLL_EXPORT U3D_JOIN_()
 
 void DLL_EXPORT U3D_ADD_DATA_(double* x1, double* x2, double* x3, double* v1, double* v2, double* v3, double* prop)
 {
-    int i;
-	tab_itr = (++tab_itr == itr)?0:tab_itr;
+    int i,ti;
+	while((*data_changed) != 0){Sleep(500);}
+
+	ti = tab_itr+1;
     
-	tab[tab_itr][7][0] = x1[0];
-	tab[tab_itr][7][1] = x1[0];
+	tab[ti][7][0] = x1[0];
+	tab[ti][7][1] = x1[0];
 	
-	tab[tab_itr][7][2] = x2[0];
-	tab[tab_itr][7][3] = x2[0];
+	tab[ti][7][2] = x2[0];
+	tab[ti][7][3] = x2[0];
 
-	tab[tab_itr][7][4] = x3[0];
-	tab[tab_itr][7][5] = x3[0];
+	tab[ti][7][4] = x3[0];
+	tab[ti][7][5] = x3[0];
 	
-	tab[tab_itr][7][6] = v1[0];
-	tab[tab_itr][7][7] = v1[0];
+	tab[ti][7][6] = v1[0];
+	tab[ti][7][7] = v1[0];
 
-	tab[tab_itr][7][8] = v2[0];
-	tab[tab_itr][7][9] = v2[0];
+	tab[ti][7][8] = v2[0];
+	tab[ti][7][9] = v2[0];
 
-	tab[tab_itr][7][10] = v3[0];
-	tab[tab_itr][7][11] = v3[0];
+	tab[ti][7][10] = v3[0];
+	tab[ti][7][11] = v3[0];
 	
-	tab[tab_itr][7][12] = prop[0];
-	tab[tab_itr][7][13] = prop[0];
+	tab[ti][7][12] = prop[0];
+	tab[ti][7][13] = prop[0];
 
 
     for(i = 1 ; i < non ; i++)
     {
-        tab[tab_itr][0][i] = x1[i];
-        if(tab[tab_itr][7][0] > x1[i]) tab[tab_itr][7][0] = x1[i];
-        if(tab[tab_itr][7][1] < x1[i]) tab[tab_itr][7][1] = x1[i];
+        tab[ti][0][i] = x1[i];
+        if(tab[ti][7][0] > x1[i]) tab[ti][7][0] = x1[i];
+        if(tab[ti][7][1] < x1[i]) tab[ti][7][1] = x1[i];
 
-        tab[tab_itr][1][i] = x2[i];
-        if(tab[tab_itr][7][2] > x2[i]) tab[tab_itr][7][2] = x2[i];
-        if(tab[tab_itr][7][3] < x2[i]) tab[tab_itr][7][3] = x2[i];
+        tab[ti][1][i] = x2[i];
+        if(tab[ti][7][2] > x2[i]) tab[ti][7][2] = x2[i];
+        if(tab[ti][7][3] < x2[i]) tab[ti][7][3] = x2[i];
 
-        tab[tab_itr][2][i] = x3[i];
-        if(tab[tab_itr][7][4] > x3[i]) tab[tab_itr][7][4] = x3[i];
-        if(tab[tab_itr][7][5] < x3[i]) tab[tab_itr][7][5] = x3[i];
+        tab[ti][2][i] = x3[i];
+        if(tab[ti][7][4] > x3[i]) tab[ti][7][4] = x3[i];
+        if(tab[ti][7][5] < x3[i]) tab[ti][7][5] = x3[i];
 
-        tab[tab_itr][3][i] = v1[i];
-        if(tab[tab_itr][7][6] > v1[i]) tab[tab_itr][7][6] = v1[i];
-        if(tab[tab_itr][7][7] < v1[i]) tab[tab_itr][7][7] = v1[i];
+        tab[ti][3][i] = v1[i];
+        if(tab[ti][7][6] > v1[i]) tab[ti][7][6] = v1[i];
+        if(tab[ti][7][7] < v1[i]) tab[ti][7][7] = v1[i];
 
-        tab[tab_itr][4][i] = v2[i];
-        if(tab[tab_itr][7][8] > v2[i]) tab[tab_itr][7][8] = v2[i];
-        if(tab[tab_itr][7][9] < v2[i]) tab[tab_itr][7][9] = v2[i];
+        tab[ti][4][i] = v2[i];
+        if(tab[ti][7][8] > v2[i]) tab[ti][7][8] = v2[i];
+        if(tab[ti][7][9] < v2[i]) tab[ti][7][9] = v2[i];
 
-        tab[tab_itr][5][i] = v3[i];
-        if(tab[tab_itr][7][10] > v3[i]) tab[tab_itr][7][10] = v3[i];
-        if(tab[tab_itr][7][11] < v3[i]) tab[tab_itr][7][11] = v3[i];
+        tab[ti][5][i] = v3[i];
+        if(tab[ti][7][10] > v3[i]) tab[ti][7][10] = v3[i];
+        if(tab[ti][7][11] < v3[i]) tab[ti][7][11] = v3[i];
 
-        tab[tab_itr][6][i] = prop[i];
-        if(tab[tab_itr][7][12] > prop[i]) tab[tab_itr][7][12] = prop[i];
-        if(tab[tab_itr][7][13] < prop[i]) tab[tab_itr][7][13] = prop[i];
+        tab[ti][6][i] = prop[i];
+        if(tab[ti][7][12] > prop[i]) tab[ti][7][12] = prop[i];
+        if(tab[ti][7][13] < prop[i]) tab[ti][7][13] = prop[i];
     }
 	//after 1st itr set space properties
-	if (tab_itr == 0)
+	if (ti == 0)
 	{
-		ssx = (float) tab[tab_itr][7][1] - tab[tab_itr][7][0];
-		osx = tab[tab_itr][7][0];
+		ssx = (float) tab[ti][7][1] - tab[ti][7][0];
+		osx = tab[ti][7][0];
 		
-		ssy = (float) tab[tab_itr][7][3] - tab[tab_itr][7][2];
-		osy = tab[tab_itr][7][2];
+		ssy = (float) tab[ti][7][3] - tab[ti][7][2];
+		osy = tab[ti][7][2];
 		
-		ssz = (float) tab[tab_itr][7][5] - tab[tab_itr][7][4];
-		osz = tab[tab_itr][7][4];
+		ssz = (float) tab[ti][7][5] - tab[ti][7][4];
+		osz = tab[ti][7][4];
 		
 	}
 
-    data_changed = 1;
+    tab_itr = (++tab_itr == itr)?0:tab_itr;
+    (*data_changed) = 1;
+	
 }
 
 void DLL_EXPORT U3D_SET_TITLE_(const char* str, unsigned int size)
@@ -245,7 +265,7 @@ void DLL_EXPORT U3D_SET_TITLE_(const char* str, unsigned int size)
 void DLL_EXPORT U3D_PLAY_LOOP_(double* _delay)
 {
 	delay = (*_delay);
-	dtime = time(NULL);
+	dtime = clock();
 	play_loop = 1;
 }
 
@@ -253,7 +273,7 @@ void DLL_EXPORT U3D_STORE_DATA_(const char* fname, unsigned int size)
 {
 	FILE* f;
 	int i,j;
-
+	
 	f = fopen(fname,"wb");
 	
 	if (f == NULL) return ;
@@ -414,17 +434,19 @@ void draw_scene()
 	if(play_loop > 0)
 	{
 		double dt;
-		now = time(NULL);
-
-		dt = difftime(now,dtime);
+		clock_t dnow;
+		
+		dnow = clock();
+		dt = ((double)dnow-dtime)/CLOCKS_PER_SEC;
+		
 		if (dt >= delay)
 		{
 			tab_itr = (++tab_itr == itr)?0:tab_itr;
-			dtime = now;
+			dtime = dnow;
 		}
 	}
 
-	if(data_changed == 0)
+	if((*data_changed) == 0)
     {
         if (tab_itr >= 0) glCallList(lists[tab_itr]);
     } else {
@@ -469,7 +491,7 @@ void draw_scene()
         glEndList();
         glCallList(lists[tab_itr]);
 
-        data_changed = 0;
+        (*data_changed) = 0;
     }
     glFinish();
     glutSwapBuffers();
@@ -501,7 +523,7 @@ u3d_th_ret_t window_worker(void* args)
     glutIdleFunc(&draw_scene);
     init_GL(640,480);
 
-	
+	(*initlock) = 0;
     glutMainLoop();
     return NULL;
 }
