@@ -42,6 +42,7 @@ return;
 
 #endif
 
+
 #include <GL/glut.h> 
 #include <GL/gl.h>	
 #include <GL/glu.h>	
@@ -51,7 +52,8 @@ u3d_thread_t visthread;
 // window title
 char title[256];
 //ss{X} - space size in direction {X}
-float ssx, ssy, ssz;
+//ss - max of ss{X} 
+float ssx, ssy, ssz,ss;
 //os{X} - offset ind direction {X}  
 float osx, osy, osz;
 //rot{x|y} - rotation in direction {x|y}
@@ -72,7 +74,7 @@ int done;
 //data_changed - indicate changes in data between threads
 int* data_changed;
 //scal - scalling factor
-int scal;
+double scal;
 //lists - array of openGL list descriptors
 GLuint* lists;
 //t1 - timestamp for computing fps
@@ -89,6 +91,8 @@ clock_t dtime;
 u3d_th_ret_t window_worker(void* args);
 //initial lock for load data
 int* initlock;
+
+#define MAX3(A,B,C) A > C ? A >B ? A : B : C; 
 
 int DLL_EXPORT U3D_INIT_(int* _non,int* _itr)
 {
@@ -182,7 +186,7 @@ void DLL_EXPORT U3D_JOIN_()
 void DLL_EXPORT U3D_ADD_DATA_(double* x1, double* x2, double* x3, double* v1, double* v2, double* v3, double* prop)
 {
     int i,ti;
-	while((*data_changed) != 0){Sleep(500);}
+	while((*data_changed) != 0){Sleep(100);}
 
 	ti = tab_itr+1;
     
@@ -249,7 +253,8 @@ void DLL_EXPORT U3D_ADD_DATA_(double* x1, double* x2, double* x3, double* v1, do
 		
 		ssz = (float) tab[ti][7][5] - tab[ti][7][4];
 		osz = tab[ti][7][4];
-		
+	
+		ss = MAX3(ssx,ssy,ssz);
 	}
 
     tab_itr = (++tab_itr == itr)?0:tab_itr;
@@ -354,9 +359,10 @@ void key_pressed(unsigned char key, int x, int y)
     case 's':
         xrot +=1.0;
         break;
-    case 'r':
+    case 'c':
         xrot = 0.0f;
         yrot = 0.0f;
+		scal = 1.0f;
         break;
     case 'q':
         zzoom -=1.0;
@@ -364,7 +370,11 @@ void key_pressed(unsigned char key, int x, int y)
     case 'e':
         zzoom +=1.0;
         break;
-
+	case 'z':
+		scal*=1.1;
+		break;
+	case 'x':
+		scal*=(1.0/1.1);
     }
 }
 
@@ -427,9 +437,9 @@ void draw_scene()
     glTranslatef(0.0f,0.0f,-25.0f-zzoom);
     glRotatef(xrot,1.0f,0.0f,0.0f);
     glRotatef(yrot,0.0f,1.0f,0.0f);
-    glTranslatef(-ssx/2.0f,
-                 -ssz/2.0f,
-                 -ssy/2.0f);
+    glTranslatef(-10*(ssx/ss)/2.0f,
+                 -10*(ssz/ss)/2.0f,
+                 -10*(ssy/ss)/2.0f);
     
 	if(play_loop > 0)
 	{
@@ -471,19 +481,24 @@ void draw_scene()
             for (i = 0 ; i < non ; i++)
             {
                 set_gl_color(tab[tab_itr][7][12], tab[tab_itr][7][13], tab[tab_itr][6][i]);
-                glVertex3d( tab[tab_itr][0][i], tab[tab_itr][2][i], tab[tab_itr][1][i]);
-
+                glVertex3d( 10*(tab[tab_itr][0][i]-osx)/ss, 
+							10*(tab[tab_itr][2][i]-osz)/ss, 
+							10*(tab[tab_itr][1][i]-osy)/ss);
             }
         }
         glEnd();
-
         glBegin(GL_LINES);
         {
             glColor3f(0.0f,1.0f,1.0f);
             for (i = 0 ; i < non ; i++)
             {
-                glVertex3d( tab[tab_itr][0][i], tab[tab_itr][2][i], tab[tab_itr][1][i]);
-                glVertex3d( tab[tab_itr][0][i]+tab[tab_itr][3][i]/scal, tab[tab_itr][2][i]+tab[tab_itr][5][i]/scal, tab[tab_itr][1][i]+tab[tab_itr][4][i]/scal);
+                glVertex3d( 10*(tab[tab_itr][0][i]-osx)/ss, 
+							10*(tab[tab_itr][2][i]-osz)/ss, 
+							10*(tab[tab_itr][1][i]-osy)/ss);
+
+                glVertex3d( 10*(tab[tab_itr][0][i]-osx)/ss + tab[tab_itr][3][i]/scal, 
+							10*(tab[tab_itr][2][i]-osz)/ss + tab[tab_itr][5][i]/scal, 
+							10*(tab[tab_itr][1][i]-osy)/ss + tab[tab_itr][4][i]/scal);
             }
         }
         glEnd();
