@@ -21,18 +21,85 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <stdio.h>
+
+#if defined (WIN32)
+#include <windows.h>
+#endif
+
 #include "u3dspv.h"
 
 
 int main(int argc, const char* argv[])
 {
-	int i,n,j;
+	int i,n,j,guard;
 	double* dbuf;
+	
 	char buf[3];
 	FILE* f;
+	
 	double delay;
-	f=fopen("out.u3d","rb");
+	char* fname;
+	char ch;
+	
+	fname = NULL;
+	delay = 0.25;
 
+	for (j=1; j<argc ; j++)
+	{
+		if (argv[j][0] == '-')
+		{
+			ch = argv[j][1];
+			switch (ch)
+			{
+				case 'f':
+					if (j+1 < argc)
+					{
+						fname  = (char*) malloc(sizeof(argv[j+1]));
+						fname = strncpy(fname,argv[j+1],sizeof(argv[j+1]));
+						break;
+					} else {
+						ch = 'h';
+					}
+				case 'd':
+					if (j+1 < argc)
+					{
+						guard = sscanf(argv[j+1],"%llf",&delay);
+						if(guard == 1 && delay > 0)
+						{
+							break;
+						} else {
+							ch = 'h';
+						}
+					} else {
+						ch = 'h';
+					}
+				case 'h':
+					{
+						printf("u3dplayer - help\n");
+						printf("Usage: u3dplayer -f [file] -d [delay]\n");
+						printf("Options:\n");
+						printf(" -f [file] : file to open\n");
+						printf(" -d [delay] : delay between frames changes. delay must be a positive floatpoint number\n");
+						return -1;
+					}
+				default:
+					{
+						printf("Unrecognized commandline argument %s",argv[j]);
+						return -1;
+					}
+			}
+		}
+	}
+
+	if(fname == NULL) fname = (char*) "out.u3d";
+	
+	f=fopen(fname,"rb");
+	
+	if(f == NULL)
+	{
+		printf("Problem occured: file %s was not opened, exiting...\n");
+		return -1;
+	}
 	
 	fread(buf,sizeof(char),3,f);
 	fread( &i,sizeof( int),1,f);
@@ -40,7 +107,7 @@ int main(int argc, const char* argv[])
 	
 	U3D_INIT_(&n,&i);	
 	
-	printf("i=%d n=%d\n",i,n);
+	printf("Numner of iterations=%d, Number of nodes=%d\n",i,n);
 	dbuf = (double*) malloc((7*n+14)*sizeof(double));
 	for ( j=0 ; j<i ; j++ )
 	{
@@ -48,7 +115,6 @@ int main(int argc, const char* argv[])
 		U3D_ADD_DATA_(&dbuf[0*n],&dbuf[1*n],&dbuf[2*n],&dbuf[3*n],&dbuf[4*n],&dbuf[5*n],&dbuf[6*n]);
 	}
 	
-	delay = 0.1;
 	U3D_PLAY_LOOP_(&delay);
 
 	system("pause");
