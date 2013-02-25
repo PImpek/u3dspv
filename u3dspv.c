@@ -56,6 +56,9 @@ char title[256];
 float ssx, ssy, ssz,ss;
 //os{X} - offset ind direction {X}  
 float osx, osy, osz;
+//vsf{X} - velocity scalling factor in direction {X}
+//vsf max of vsf{X}
+float vsfx, vsfy, vsfz, vsf;
 //rot{x|y} - rotation in direction {x|y}
 //zzom - zoom factor in Z direction
 float xrot,yrot,zzoom;
@@ -73,8 +76,6 @@ int tab_itr;
 int done;
 //data_changed - indicate changes in data between threads
 int* data_changed;
-//scal - scalling factor
-double scal;
 //lists - array of openGL list descriptors
 GLuint* lists;
 //t1 - timestamp for computing fps
@@ -109,7 +110,6 @@ int DLL_EXPORT U3D_INIT_(int* _non,int* _itr)
     tab_itr = -1;
 
     done = 0;
-    scal = 1;
 
     xrot= 0.0f;
     yrot =0.0f;
@@ -255,6 +255,12 @@ void DLL_EXPORT U3D_ADD_DATA_(double* x1, double* x2, double* x3, double* v1, do
 		osz = tab[ti][7][4];
 	
 		ss = MAX3(ssx,ssy,ssz);
+
+		vsfx = (float) tab[ti][7][7];
+		vsfy = (float) tab[ti][7][9];
+		vsfz = (float) tab[ti][7][11];
+
+		vsf = MAX3(vsfx,vsfy,vsfz);
 	}
 
     tab_itr = (++tab_itr == itr)?0:tab_itr;
@@ -359,23 +365,17 @@ void key_pressed(unsigned char key, int x, int y)
     case 's':
         xrot +=1.0;
         break;
-    case 'c':
+    case 'r':
         xrot = 0.0f;
         yrot = 0.0f;
-		scal = 1.0f;
-        break;
+		break;
     case 'q':
         zzoom -=1.0;
         break;
     case 'e':
         zzoom +=1.0;
         break;
-	case 'z':
-		scal*=1.1;
-		break;
-	case 'x':
-		scal*=(1.0/1.1);
-    }
+	}
 }
 
 void mouse_pressed(int button, int state, int x, int y)
@@ -496,9 +496,9 @@ void draw_scene()
 							10*(tab[tab_itr][2][i]-osz)/ss, 
 							10*(tab[tab_itr][1][i]-osy)/ss);
 
-                glVertex3d( 10*(tab[tab_itr][0][i]-osx)/ss + tab[tab_itr][3][i]/scal, 
-							10*(tab[tab_itr][2][i]-osz)/ss + tab[tab_itr][5][i]/scal, 
-							10*(tab[tab_itr][1][i]-osy)/ss + tab[tab_itr][4][i]/scal);
+                glVertex3d( 10*(tab[tab_itr][0][i]-osx)/ss + tab[tab_itr][3][i]/vsf, 
+							10*(tab[tab_itr][2][i]-osz)/ss + tab[tab_itr][5][i]/vsf, 
+							10*(tab[tab_itr][1][i]-osy)/ss + tab[tab_itr][4][i]/vsf);
             }
         }
         glEnd();
